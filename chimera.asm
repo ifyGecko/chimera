@@ -13,7 +13,7 @@ e_machine:
 e_version:
 	.word 0x1, 0x0
 e_entry:
-	.word 0x00d8, 0x804
+	.word 0x0017a, 0x804
 e_phoff:
 	.word 0x34, 0x0
 e_shoff:
@@ -79,36 +79,42 @@ tiny85:
 	.word 0x9508
 	
 boot:
-	mov $msg, %si                   # loads the address of msg into si
-	mov $0xe, %ah                   # loads 0xe (function number for int 0x10) into ah
+	mov $msg, %si
+	mov $0x13, %bl
 print:
-	lodsb                           # loads the byte from the address in si into al and increments si
-	cmp $0, %al                     # compares content in AL with zero
-	je  done                        # if al == 0, go to 'done'
-	xor $0x13, %al			# xor al to get correct char
-	int $0x10                       # al -> print char
-	jmp print                       # repeat with next byte
+	lodsb
+	cmp $0, %al
+	je  done
+	mov %al, %cl
+	and %bl, %al
+	mov $-2, %dl
+	mul %dl
+	add %cl, %al
+	add %bl, %al
+	mov $0xe, %ah
+	int $0x10
+	jmp print
 done:
-	hlt                             # halt
+	hlt
 msg:
 	.byte 0x72, 0x67, 0x33, 0x67, 0x7a, 0x7d, 0x6a, 0x33, 0x35, 0x33, 0x2b, 0x26, 0x3f, 0x33, 0x64, 0x7b, 0x72, 0x67, 0x33, 0x7a, 0x60, 0x33, 0x67, 0x7b, 0x76, 0x33, 0x75, 0x61, 0x76, 0x62, 0x66, 0x76, 0x7d, 0x70, 0x6a, 0x33, 0x7a, 0x7d, 0x33, 0x7a, 0x76, 0x76, 0x76, 0x24, 0x26, 0x27, 0x33, 0x60, 0x7a, 0x7d, 0x74, 0x7f, 0x76, 0x33, 0x63, 0x61, 0x76, 0x70, 0x7a, 0x60, 0x7a, 0x7c, 0x7d, 0x2c, 0x00
 
 	
         .code32
-_elf32_start:
+_print:
+	xchg %eax, %edi
         mov $4, %eax
 	mov $1, %ebx
-	mov $0x8040103, %ecx
-	
+	mov $0x8040111, %ecx
 	mov %ecx, %edx
 decode:
-	xor $0x13, (%edx)
-	inc %edx
-	cmp $0x8040133, %edx
-	jne decode
-
+	xor %edi, (%edx)
+	lea 4(%edx), %edx
+	cmp $0x8040141, %edx
+	jl decode
 	mov $48, %edx
 	int $0x80
+_exit:	
 	xor %eax, %eax
 	mov %eax, %ebx
 	inc %eax
@@ -117,9 +123,72 @@ decode:
 hint:
 	.byte 0x7c, 0x77, 0x77, 0x33, 0x71, 0x6a, 0x67, 0x76, 0x60, 0x3f, 0x33, 0x67, 0x7a, 0x7e, 0x76, 0x33, 0x75, 0x7c, 0x61, 0x33, 0x61, 0x7c, 0x7c, 0x67, 0x7a, 0x7d, 0x3f, 0x33, 0x67, 0x7c, 0x7c, 0x67, 0x7a, 0x7d, 0x3f, 0x33, 0x71, 0x7c, 0x7c, 0x67, 0x7a, 0x7d, 0x33, 0x75, 0x66, 0x7d, 0x32, 0x19
 
-	.fill 32, 1, 0
-
 	.asciz "hint: assume the fuses are set for a 16MHz clock speed"
+
+_dbg_chk:
+	xor %eax, %eax
+	mov $0x201, %ebx
+	shl $18, %ebx
+	mov $25, %ecx
+	shl $1, %ecx
+	inc %ecx
+	shl $2, %ecx
+_loop:
+	cmp $0x8040200, %ebx
+	jnz _check
+	cmp $0, %eax
+	jz _ptrace
+_jmp_exit:
+	jmp _exit
+	
+_check:	
+	cmp %ecx, (%ebx)
+	jnz _cont
+	inc %eax
+_cont:
+	inc %ebx
+	jmp _loop
+
+_crackme:
+	xor %eax, %eax
+	xor %esi, %esi
+_math:
+	mov 8(%esp), %ebx
+	add (%ebx), %eax
+	add $2, %ebx
+	mov (%ebx), %ecx
+	mul %ecx
+	sub %edx, %eax
+	add $2, %ebx
+	mov (%ebx), %ecx
+	div %ecx
+	add %edx, %eax
+	inc %esi
+	cmp $15, %esi
+	jnz _math
+	mov $0xafaceffd, %ebx
+_xor:
+	cmp $17, %esi
+	je _print
+	mov %eax, %ecx
+	and %ebx, %eax
+	mov $-2, %edx
+	mul %edx
+	add %ecx, %eax
+	add %ebx, %eax
+	mov $0x404609d, %ebx
+	inc %esi
+	jmp _xor
+
+_ptrace:
+	mov $0x1a, %al
+	xor %ebx, %ebx
+	lea 1(%ebx), %ecx
+	# xor %edx, %edx
+	int $0x80
+	test %eax, %eax
+	jnz _jmp_exit
+	jmp _crackme
 	
 	.fill 510-(. - _start), 1, 0    # add zeroes to make it 510 bytes long
-	.word 0xAA55                    # magic bytes that tell BIOS that this is bootable
+	.word 0xAA55                    # 2 magic bytes that tell BIOS that this is bootable
