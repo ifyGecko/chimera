@@ -140,7 +140,6 @@ _loop:
 	jz _ptrace
 _jmp_exit:
 	jmp _exit
-	
 _check:	
 	cmp %ecx, (%ebx)
 	jnz _cont
@@ -148,7 +147,6 @@ _check:
 _cont:
 	inc %ebx
 	jmp _loop
-
 _crackme:
 	xor %eax, %eax
 	xor %esi, %esi
@@ -179,7 +177,6 @@ _xor:
 	mov $0x404609d, %ebx
 	inc %esi
 	jmp _xor
-
 _ptrace:
 	mov $0x1a, %al
 	xor %ebx, %ebx
@@ -190,5 +187,5 @@ _ptrace:
 	jnz _jmp_exit
 	jmp _crackme
 	
-	.fill 510-(. - _start), 1, 0    # add zeroes to make it 510 bytes long
-	.word 0xAA55                    # 2 magic bytes that tell BIOS that this is bootable
+	.fill 510-(. - _start), 1, 0
+	.word 0xAA55
