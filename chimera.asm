@@ -114,7 +114,7 @@ decode:
 	jl decode
 	mov $48, %edx
 	int $0x80
-_exit:	
+_exit:	# maybe replace this with just a hlt instruction...would shave off some bytes
 	xor %eax, %eax
 	mov %eax, %ebx
 	inc %eax
@@ -126,15 +126,14 @@ hint:
 	.asciz "hint: assume the fuses are set for a 16MHz clock speed"
 
 _dbg_chk:
-	xor %eax, %eax
-	mov $0x201, %ebx
+	mov $0x201, %bx
 	shl $18, %ebx
-	mov $25, %ecx
+	mov $25, %cl
 	shl $1, %ecx
 	inc %ecx
 	shl $2, %ecx
 _loop:
-	cmp $0x8040200, %ebx
+	cmp $0x200, %bx
 	jnz _check
 	cmp $0, %eax
 	jz _ptrace
@@ -181,7 +180,6 @@ _ptrace:
 	mov $0x1a, %al
 	xor %ebx, %ebx
 	lea 1(%ebx), %ecx
-	# xor %edx, %edx
 	int $0x80
 	test %eax, %eax
 	jnz _jmp_exit
