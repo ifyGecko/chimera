@@ -126,8 +126,6 @@ _dbg_chk:
         push %ss
         pop %ss
         pushf
-        testb $1, 1(%esp)
-        jnz _jmp_exit
         pop %ebx
         dec %ebx
         shl $18, %ebx
