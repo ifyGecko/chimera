@@ -13,7 +13,7 @@ e_machine:
 e_version:
         .word 0x1, 0x0
 e_entry:
-        .word 0x00178, 0x804
+        .word 0x00172, 0x804
 e_phoff:
         .word 0x34, 0x0
 e_shoff:
@@ -105,20 +105,17 @@ _print:
         xchg %eax, %edi
         mov $4, %eax
         mov $1, %ebx
-        mov $0x8040111, %ecx
+        mov $0x804010b, %ecx
         mov %ecx, %edx
 decode:
         xor %edi, (%edx)
         lea 4(%edx), %edx
-        cmp $0x8040141, %edx
+        cmp $0x804013b, %edx
         jl decode
         mov $48, %edx
         int $0x80
 _exit:
-        xor %eax, %eax
-        mov %eax, %ebx
-        inc %eax
-        int $0x80
+        hlt
 
 hint:
         .byte 0x7c, 0x77, 0x77, 0x33, 0x71, 0x6a, 0x67, 0x76, 0x60, 0x3f, 0x33, 0x67, 0x7a, 0x7e, 0x76, 0x33, 0x75, 0x7c, 0x61, 0x33, 0x61, 0x7c, 0x7c, 0x67, 0x7a, 0x7d, 0x3f, 0x33, 0x67, 0x7c, 0x7c, 0x67, 0x7a, 0x7d, 0x3f, 0x33, 0x71, 0x7c, 0x7c, 0x67, 0x7a, 0x7d, 0x33, 0x75, 0x66, 0x7d, 0x32, 0x19
@@ -126,7 +123,13 @@ hint:
         .asciz "hint: assume the fuses are set for a 16MHz clock speed"
 
 _dbg_chk:
-        mov $0x201, %bx
+        push %ss
+        pop %ss
+        pushf
+        testb $1, 1(%esp)
+        jnz _jmp_exit
+        pop %ebx
+        dec %ebx
         shl $18, %ebx
         mov $25, %cl
         shl $1, %ecx
